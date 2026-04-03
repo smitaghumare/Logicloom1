@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LogicLoom Studio | Pro Thinker</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Outfit:wght@400;900&display=swap');
+        
+        :root {
+            --candy-pink: #FF4D91; --candy-cyan: #00F2FF; --candy-yellow: #FFD32D;
+            --deep-space: #1A1A40; --soft-glass: rgba(255, 255, 255, 0.15);
+        }
+
+        * { box-sizing: border-box; font-family: 'Outfit', sans-serif; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        
+        body {
+            background: radial-gradient(circle at center, #2E0249, #1A1A40);
+            margin: 0; display: flex; justify-content: center; align-items: center; 
+            min-height: 100vh; padding: 10px; overflow: hidden;
+        }
+
+        #confetti-canvas { position: fixed; top: 0; left: 0; pointer-events: none; z-index: 100; }
+
+        .app-container { 
+            background: rgba(255, 255, 255, 0.1); width: 100%; max-width: 420px; padding: 20px; 
+            border-radius: 40px; text-align: center; position: relative;
+            backdrop-filter: blur(25px); border: 4px solid var(--candy-cyan);
+            box-shadow: 0 0 50px rgba(0, 242, 255, 0.3); max-height: 95vh; overflow-y: auto;
+        }
+
+        .loom-icon {
+            width: 55px; height: 55px; background: var(--candy-pink);
+            border-radius: 15px; display: flex; align-items: center; justify-content: center;
+            margin: 0 auto 10px; animation: rotateLoom 5s infinite linear; border: 3px solid white;
+        }
+        @keyframes rotateLoom { 0% {transform: rotate(0deg) scale(1);} 50% {transform: rotate(180deg) scale(1.1);} 100% {transform: rotate(360deg) scale(1);} }
+
+        .brand-name { font-family: 'Fredoka One', cursive; font-size: 1.6rem; color: white; text-shadow: 3px 3px 0 var(--candy-pink); margin:0;}
+
+        #mute-btn { position: absolute; top: 20px; right: 20px; background: none; border: none; font-size: 1.5rem; cursor: pointer; }
+
+        .board-card { background: var(--soft-glass); border-radius: 25px; padding: 15px; margin: 10px 0; border: 1px solid rgba(255,255,255,0.2); }
+        .board-item { display: flex; justify-content: space-between; color: white; padding: 10px; font-size: 0.95rem; border-bottom: 1px solid rgba(255,255,255,0.1); font-weight: 900; }
+        
+        .timer-wrap { width: 100%; height: 14px; background: rgba(0,0,0,0.4); border-radius: 20px; margin-bottom: 12px; overflow: hidden; border: 2px solid rgba(255,255,255,0.2); }
+        #timer-bar { width: 100%; height: 100%; background: linear-gradient(90deg, var(--candy-cyan), var(--candy-pink)); }
+        
+        .game-card { background: white; border-radius: 30px; padding: 25px; margin-bottom: 20px; box-shadow: 0 12px 0 rgba(0,0,0,0.15); }
+        #qIco { font-size: 4rem; display: block; animation: bounce 2s infinite; }
+        @keyframes bounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+
+        input { width: 100%; padding: 18px; border-radius: 25px; border: 5px solid var(--candy-yellow); font-size: 1.5rem; text-align: center; font-weight: 900; outline: none; color: var(--deep-space); }
+        
+        .btn-main { background: var(--candy-cyan); color: var(--deep-space); width: 100%; padding: 20px; border-radius: 30px; border: none; font-weight: 900; font-size: 1.4rem; cursor: pointer; box-shadow: 0 10px 0 #00A8B3; margin-top: 15px; text-transform: uppercase; }
+        .btn-main:active { transform: translateY(5px); box-shadow: 0 5px 0 #00A8B3; }
+
+        .btn-hint { background: var(--candy-pink); color: white; border: none; padding: 10px 20px; border-radius: 20px; font-weight: 900; font-size: 0.8rem; cursor: pointer; box-shadow: 0 5px 0 #B33665; margin-top: 10px; display: inline-block; }
+        .btn-hint:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        .player-tag { color: var(--candy-yellow); font-family: 'Fredoka One'; font-size: 1.2rem; margin-top: 5px; text-shadow: 1px 1px 0 #000; }
+        .badge { background: white; color: var(--candy-pink); padding: 5px 15px; border-radius: 20px; font-weight: 900; font-size: 0.8rem; display: inline-block; margin-top: 5px; }
+        
+        #hint-display { color: var(--candy-yellow); font-weight: 900; font-size: 0.9rem; margin-top: 10px; display: block; min-height: 1.2rem; text-shadow: 1px 1px 2px black; }
+
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<canvas id="confetti-canvas"></canvas>
+
+<div class="app-container">
+    <button id="mute-btn" onclick="toggleMute()">🔊</button>
+    <div class="loom-icon">
+        <svg width="35" height="35" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <h1 class="brand-name">LogicLoom Studio</h1>
+
+    <div id="scr-start">
+        <div class="player-tag">TOP PLAYERS</div>
+        <div class="board-card" id="top-scores"></div>
+        <input type="text" id="pName" placeholder="Player Name">
+        <button class="btn-main" onclick="startPlay()">START MISSION 🚀</button>
+    </div>
+
+    <div id="scr-game" class="hidden">
+        <div class="timer-wrap"><div id="timer-bar"></div></div>
+        <div class="player-tag" id="game-player-name"></div>
+        <div id="badge-display" class="badge">JUNIOR EXPLORER</div>
+        <div style="color:white; font-weight:900; margin: 10px 0;">LEVEL <span id="txtLvl">1</span> | QUEST <span id="txtTask">1/5</span></div>
+        <div class="game-card">
+            <span id="qIco">🚀</span>
+            <div id="qTxt" style="color:#1a1a40; font-weight:900; font-size:1.5rem; margin-top:10px;">...</div>
+        </div>
+        <input type="text" id="ansBox" placeholder="Type here..." autocomplete="off">
+        <span id="hint-display"></span>
+        <button class="btn-main" onclick="check()">GO! ✅</button>
+        <button id="hint-btn" class="btn-hint" onclick="getHint()">💡 NEED A CLUE? (-5 XP)</button>
+    </div>
+
+    <div id="scr-lvl" class="hidden">
+        <h1 style="color:var(--candy-yellow); font-family:'Fredoka One'; font-size: 2.5rem;">VICTORY! 🌟</h1>
+        <div class="board-card" id="lvlSummary"></div>
+        <div style="color:white; font-weight:900; font-size:1.8rem;">TOTAL: <span id="grandTotal" style="color:var(--candy-pink)">0</span> XP</div>
+        <button class="btn-main" onclick="goNextSector()">CONTINUE ➡️</button>
+    </div>
+
+    <div id="scr-end" class="hidden">
+        <h1 style="color:var(--candy-pink); font-family:'Fredoka One';">GALAXY CHAMPION</h1>
+        <div class="board-card" id="finalSummary"></div>
+        <h2 style="color:white;">Your Score: <span id="finalXP" style="color:var(--candy-cyan)">0</span></h2>
+        <button class="btn-main" onclick="location.reload()">RE-START 🔄</button>
+    </div>
+</div>
+
+<script>
+    let audioCtx, score = 0, curLvl = 1, qIdx = 0, lvlPts = 0, report = [], timeLeft = 30, timer, pilotName = "", isMuted = false;
+    let musicInterval;
+
+    const db = {
+        1: [{q:"5 + 5?", a:"10", h:"Starts with 'T'", i:"🖐️"},{q:"Sky color?", a:"blue", i:"☁️", h:"Rhymes with GLUE"},{q:"2 x 3?", a:"6", i:"🔢", h:"Half of 12"},{q:"Sun rise?", a:"east", i:"☀️", h:"Opposite of West"},{q:"Cold ice?", a:"yes", i:"🧊", h:"Starts with 'Y'"}],
+        2: [{q:"8 - 4?", a:"4", i:"➖", h:"Half of 8"},{q:"Spider legs?", a:"8", i:"🕷️", h:"Double of 4"},{q:"Apple color?", a:"red", i:"🍎", h:"Rhymes with BED"},{q:"10 + 10?", a:"20", i:"➕", h:"Starts with 'T'"},{q:"Small insect?", a:"ant", i:"🐜", h:"A-N-..."}],
+        3: [{q:"3 x 3?", a:"9", i:"✖️", h:"Before 10"},{q:"Triangle sides?", a:"3", i:"📐", h:"A, B, C... how many?"},{q:"Baby dog?", a:"puppy", i:"🐶", h:"Starts with 'P'"},{q:"12 / 2?", a:"6", i:"➗", h:"3 + 3"},{q:"Rain source?", a:"clouds", i:"🌧️", h:"Fluffy things in sky"}],
+        4: [{q:"Next: 2, 4, 6...?", a:"8", i:"📈", h:"An octopus has this many legs"},{q:"Opposite: In?", a:"out", i:"🚪", h:"Step ___ of the room"},{q:"Milk color?", a:"white", i:"🥛", h:"Color of snow"},{q:"15 + 5?", a:"20", i:"🔢", h:"Two Tens"},{q:"A, E, I...?", a:"o", i:"🔤", h:"The vowel after 'I'"}],
+        5: [{q:"4 x 5?", a:"20", i:"➕", h:"Rhymes with Plenty"},{q:"Car wheels?", a:"4", i:"🚗", h:"2 pairs"},{q:"Opposite: Up?", a:"down", i:"⬇️", h:"Look at the floor"},{q:"100 - 1?", a:"99", i:"📉", h:"Highest 2-digit number"},{q:"Blood color?", a:"red", i:"💉", h:"Same as a strawberry"}],
+        6: [{q:"7 + 7?", a:"14", i:"🔢", h:"Ten plus Four"},{q:"King of Jungle?", a:"lion", i:"🦁", h:"He has a big mane"},{q:"Ice is...?", a:"cold", i:"🧊", h:"Opposite of Hot"},{q:"20 / 4?", a:"5", i:"➗", h:"High five!"},{q:"Opposite: Day?", a:"night", i:"🌙", h:"When stars come out"}],
+        7: [{q:"Double 10?", a:"20", i:"🔥", h:"A score in years"},{q:"Days in week?", a:"7", i:"📅", h:"Rainbow colors count"},{q:"6 x 2?", a:"12", i:"✖️", h:"A dozen eggs"},{q:"Frog sound?", a:"croak", i:"🐸", h:"Starts with 'C'"},{q:"Opposite: Big?", a:"small", i:"🐜", h:"Starts with 'S'"}],
+        8: [{q:"Red + Yellow?", a:"orange", i:"🎨", h:"Same as the fruit"},{q:"Century?", a:"100", i:"💯", h:"A full cricket score"},{q:"Opposite: Left?", a:"right", i:"➡️", h:"Opposite of Wrong"},{q:"15 - 10?", a:"5", i:"🔢", h:"One hand fingers"},{q:"Baby cat?", a:"kitten", i:"🐱", h:"Starts with 'K'"}],
+        9: [{q:"Next: 10, 20...?", a:"30", i:"📈", h:"3 groups of 10"},{q:"Frozen water?", a:"ice", i:"🧊", h:"Three letters long"},{q:"Half of 50?", a:"25", i:"➗", h:"A quarter of 100"},{q:"Fast opposite?", a:"slow", i:"🐢", h:"Rhymes with GLOW"},{q:"LogicLoom ...?", a:"studio", i:"💻", h:"Starts with 'S'"}],
+        10:[{q:"10 x 10?", a:"100", i:"🚀", h:"The BIG Hundred"},{q:"Opposite: Open?", a:"close", i:"🚪", h:"____ the door"},{q:"Earth shape?", a:"round", i:"🌍", h:"Rhymes with Ground"},{q:"9 + 1?", a:"10", i:"🔢", h:"Number of toes"},{q:"India City?", a:"delhi", i:"🇮🇳", h:"Capital city"}]
+    };
+
+    window.onload = updateLeaderboard;
+
+    function toggleMute() {
+        isMuted = !isMuted;
+        document.getElementById('mute-btn').innerText = isMuted ? "🔇" : "🔊";
+    }
+
+    function startPlay() {
+        pilotName = document.getElementById('pName').value || "Explorer";
+        document.getElementById('game-player-name').innerText = pilotName;
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        startMusic();
+        document.getElementById('scr-start').classList.add('hidden');
+        document.getElementById('scr-game').classList.remove('hidden');
+        loadTask();
+    }
+
+    function startMusic() {
+        if(musicInterval) clearInterval(musicInterval);
+        const notes = [261.6, 329.6, 392.0, 523.2]; 
+        let step = 0;
+        musicInterval = setInterval(() => {
+            if(!isMuted) {
+                const tempo = Math.max(150, 400 - (curLvl * 20));
+                playTone(notes[step % notes.length], 0.2, 0.012);
+                step++;
+            }
+        }, 400);
+    }
+
+    function playTone(f, d, v, type='sine') {
+        if(!audioCtx || isMuted) return;
+        const o = audioCtx.createOscillator(); const g = audioCtx.createGain();
+        o.type = type; o.frequency.setValueAtTime(f, audioCtx.currentTime);
+        g.gain.setValueAtTime(v, audioCtx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + d);
+        o.connect(g); g.connect(audioCtx.destination);
+        o.start(); o.stop(audioCtx.currentTime + d);
+    }
+
+    function loadTask() {
+        const d = db[curLvl];
+        if (qIdx >= d.length) { showMarks(); return; }
+        updateBadge();
+        document.getElementById('txtLvl').innerText = curLvl;
+        document.getElementById('txtTask').innerText = (qIdx+1)+"/5";
+        document.getElementById('qIco').innerText = d[qIdx].i;
+        document.getElementById('qTxt').innerText = d[qTxt].q;
+        document.getElementById('hint-display').innerText = "";
+        document.getElementById('hint-btn').disabled = false;
+        const box = document.getElementById('ansBox');
+        box.value = ""; box.disabled = false; box.style.background = "white";
+        startT();
+    }
+
+    function updateBadge() {
+        const b = document.getElementById('badge-display');
+        if(score < 100) b.innerText = "JUNIOR EXPLORER";
+        else if(score < 250) b.innerText = "SUPER BRAIN 🧠";
+        else if(score < 400) b.innerText = "LOGIC PRO 🌟";
+        else b.innerText = "GALAXY MASTER 👑";
+    }
+
+    function startT() {
+        clearInterval(timer); timeLeft = 30;
+        timer = setInterval(() => {
+            timeLeft -= 0.1;
+            document.getElementById('timer-bar').style.width = (timeLeft/30 * 100) + "%";
+            if(timeLeft <= 0) check(true);
+        }, 100);
+    }
+
+    function check(isTimeOut = false) {
+        clearInterval(timer);
+        const box = document.getElementById('ansBox');
+        const correct = db[curLvl][qIdx].a;
+        box.disabled = true;
+
+        if (!isTimeOut && box.value.trim().toLowerCase() === correct) {
+            score += 10; lvlPts += 10; 
+            playTone(800, 0.2, 0.05, 'square');
+            box.style.background = "#00FFAB";
+            setTimeout(() => { qIdx++; loadTask(); }, 800);
+        } else {
+            playTone(150, 0.5, 0.05, 'sawtooth');
+            box.style.background = "#FF4D4D";
+            box.value = isTimeOut ? "TIME'S UP!" : "IT WAS: " + correct.toUpperCase();
+            setTimeout(() => { qIdx++; loadTask(); }, 2200);
+        }
+    }
+
+    function getHint() {
+        playTone(1200, 0.1, 0.03);
+        score = Math.max(0, score - 5);
+        document.getElementById('hint-display').innerText = "CLUE: " + db[curLvl][qIdx].h;
+        document.getElementById('hint-btn').disabled = true;
+    }
+
+    function showMarks() {
+        if(report.length < curLvl) report.push({lvl: curLvl, pts: lvlPts});
+        document.getElementById('scr-game').classList.add('hidden');
+        document.getElementById('scr-lvl').classList.remove('hidden');
+        startConfetti();
+        
+        let h = ""; report.forEach(r => h += `<div class="board-item"><span>Level ${r.lvl}</span><span>${r.pts}/50 XP</span></div>`);
+        document.getElementById('lvlSummary').innerHTML = h;
+        document.getElementById('grandTotal').innerText = score;
+    }
+
+    function goNextSector() {
+        curLvl++; qIdx = 0; lvlPts = 0;
+        if (db[curLvl]) {
+            document.getElementById('scr-lvl').classList.add('hidden');
+            document.getElementById('scr-game').classList.remove('hidden');
+            loadTask();
+        } else { saveAndFinish(); }
+    }
+
+    function saveAndFinish() {
+        let scores = JSON.parse(localStorage.getItem('ll_scores') || "[]");
+        scores.push({name: pilotName, score: score});
+        scores.sort((a,b) => b.score - a.score);
+        localStorage.setItem('ll_scores', JSON.stringify(scores.slice(0, 5)));
+        document.getElementById('scr-lvl').classList.add('hidden');
+        document.getElementById('scr-end').classList.remove('hidden');
+        document.getElementById('finalXP').innerText = score;
+        let h = ""; report.forEach(r => h += `<div class="board-item"><span>Level ${r.lvl}</span><span>${r.pts}/50</span></div>`);
+        document.getElementById('finalSummary').innerHTML = h;
+    }
+
+    function updateLeaderboard() {
+        let scores = JSON.parse(localStorage.getItem('ll_scores') || "[]");
+        let html = scores.length ? "" : "Be the first top scorer!";
+        scores.forEach((s, i) => html += `<div class="board-item"><span>#${i+1} ${s.name}</span><span>${s.score} XP</span></div>`);
+        document.getElementById('top-scores').innerHTML = html;
+    }
+
+    function startConfetti() {
+        const canvas = document.getElementById('confetti-canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+        let p = Array.from({length: 40}, () => ({x: Math.random()*canvas.width, y: -10, r: Math.random()*6+2, c: `hsl(${Math.random()*360},100%,50%)`, v: Math.random()*3+2}));
+        function draw() {
+            ctx.clearRect(0,0,canvas.width, canvas.height);
+            p.forEach(part => {
+                ctx.beginPath(); ctx.fillStyle = part.c; ctx.arc(part.x, part.y, part.r, 0, Math.PI*2); ctx.fill();
+                part.y += part.v;
+            });
+            if(p[0].y < canvas.height) requestAnimationFrame(draw);
+        }
+        draw();
+    }
+</script>
+</body>
+</html>
